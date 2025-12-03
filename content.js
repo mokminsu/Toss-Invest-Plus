@@ -1,46 +1,49 @@
 (function () {
-  'use strict';
+  "use strict";
 
   // ===== CONFIG =====
   const CONFIG = {
-    GLOBAL_INIT: '__tossInvestPlusInit',
+    GLOBAL_INIT: "__tossInvestPlusInit",
     POLL_MS: 700,
     UPDATE_INTERVAL_MS: 50,
-    VERSION: '1.0.0'
+    VERSION: "1.1.0",
   };
 
   const FEATURES = {
     FLOAT_PANEL: true,
+    CURSOR_TOOLTIP: true,
   };
 
   const STORAGE_KEYS = {
-    FLOAT_PANEL_POS: 'tv-float-panel-pos',
-    USER_SETTINGS: 'toss-invest-plus-settings'
+    FLOAT_PANEL_POS: "tv-float-panel-pos",
+    USER_SETTINGS: "toss-invest-plus-settings",
   };
 
   // ===== UTILS =====
   function fmtPrice(x) {
-    if (x == null || Number.isNaN(x)) return '-';
+    if (x == null || Number.isNaN(x)) return "-";
     const n = Number(x);
     const str = n.toFixed(6);
-    return str
-      .replace(/(\.\d*?[1-9])0+$/, '$1')
-      .replace(/\.0+$/, '');
+    return str.replace(/(\.\d*?[1-9])0+$/, "$1").replace(/\.0+$/, "");
   }
 
   function fmtPct(x) {
-    if (x == null || Number.isNaN(x)) return '-';
-    return x.toFixed(2) + '%';
+    if (x == null || Number.isNaN(x)) return "-";
+    const sign = x >= 0 ? "+" : "";
+    return sign + x.toFixed(2) + "%";
   }
 
   function findTradingViewIframe() {
-    const iframes = Array.from(document.querySelectorAll('iframe'));
-    return iframes.find(f =>
-      /^tradingview_/i.test(f.id || '') || 
-      /^tradingview_/i.test(f.name || '') || 
-      f.hasAttribute('data-widget-options') || 
-      f.getAttribute('title') === 'Financial Chart'
-    ) || null;
+    const iframes = Array.from(document.querySelectorAll("iframe"));
+    return (
+      iframes.find(
+        (f) =>
+          /^tradingview_/i.test(f.id || "") ||
+          /^tradingview_/i.test(f.name || "") ||
+          f.hasAttribute("data-widget-options") ||
+          f.getAttribute("title") === "Financial Chart"
+      ) || null
+    );
   }
 
   // ===== PRICE DATA =====
@@ -67,21 +70,18 @@
       if (!priceScale || !priceScale.mainSource) return null;
 
       const mainSource = priceScale.mainSource();
-      if (!mainSource || typeof mainSource.lastValueData !== 'function') {
+      if (!mainSource || typeof mainSource.lastValueData !== "function") {
         return null;
       }
 
       const lv = mainSource.lastValueData();
       if (!lv || lv.noData) return null;
 
-      const str =
-        lv.formattedPriceAbsolute ??
-        lv.text ??
-        null;
+      const str = lv.formattedPriceAbsolute ?? lv.text ?? null;
 
       if (!str) return null;
 
-      const num = parseFloat(String(str).replace(/[^\d.\-]/g, ''));
+      const num = parseFloat(String(str).replace(/[^\d.\-]/g, ""));
       if (Number.isNaN(num)) return null;
 
       return num;
@@ -95,21 +95,21 @@
     let isDragging = false;
     let startX, startY, initialLeft, initialTop;
 
-    panel.addEventListener('mousedown', (e) => {
+    panel.addEventListener("mousedown", (e) => {
       isDragging = true;
-      
+
       const rect = panel.getBoundingClientRect();
       initialLeft = rect.left;
       initialTop = rect.top;
-      
+
       startX = e.clientX;
       startY = e.clientY;
-      
-      panel.style.cursor = 'grabbing';
-      panel.style.transition = 'none';
+
+      panel.style.cursor = "grabbing";
+      panel.style.transition = "none";
     });
 
-    idoc.addEventListener('mousemove', (e) => {
+    idoc.addEventListener("mousemove", (e) => {
       if (!isDragging) return;
       e.preventDefault();
 
@@ -118,35 +118,38 @@
 
       panel.style.left = `${initialLeft + dx}px`;
       panel.style.top = `${initialTop + dy}px`;
-      panel.style.right = 'auto';
+      panel.style.right = "auto";
     });
 
-    idoc.addEventListener('mouseup', () => {
+    idoc.addEventListener("mouseup", () => {
       if (!isDragging) return;
       isDragging = false;
-      panel.style.cursor = 'move';
+      panel.style.cursor = "move";
 
       try {
-        w.localStorage.setItem(STORAGE_KEYS.FLOAT_PANEL_POS, JSON.stringify({
-          left: panel.style.left,
-          top: panel.style.top
-        }));
+        w.localStorage.setItem(
+          STORAGE_KEYS.FLOAT_PANEL_POS,
+          JSON.stringify({
+            left: panel.style.left,
+            top: panel.style.top,
+          })
+        );
       } catch (e) {
-        console.error('Storage save failed', e);
+        console.error("Storage save failed", e);
       }
     });
   }
 
   function createFloatPanel(widget, idoc, w) {
-    const PANEL_ID = 'tv-custom-float-panel';
+    const PANEL_ID = "tv-custom-float-panel";
     const model = widget._model;
 
     const old = idoc.getElementById(PANEL_ID);
     if (old) old.remove();
 
-    const panel = idoc.createElement('div');
+    const panel = idoc.createElement("div");
     panel.id = PANEL_ID;
-    panel.textContent = 'loading...';
+    panel.textContent = "loading...";
 
     const chartRoot = widget._mainDiv || idoc.body;
 
@@ -157,22 +160,23 @@
     } catch (e) {}
 
     Object.assign(panel.style, {
-      position: 'fixed',
+      position: "fixed",
       zIndex: 999999,
-      padding: '6px 10px',
-      borderRadius: '6px',
-      background: 'rgba(0, 0, 0, 0.65)',
-      color: '#ffffff',
-      fontSize: '12px',
-      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      whiteSpace: 'nowrap',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-      cursor: 'move',
-      userSelect: 'none',
-      pointerEvents: 'auto',
-      top: savedPos && savedPos.top ? savedPos.top : '12px',
-      left: savedPos && savedPos.left ? savedPos.left : 'auto',
-      right: savedPos && savedPos.left ? 'auto' : '12px'
+      padding: "6px 10px",
+      borderRadius: "6px",
+      background: "rgba(0, 0, 0, 0.65)",
+      color: "#ffffff",
+      fontSize: "12px",
+      fontFamily:
+        'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      whiteSpace: "nowrap",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+      cursor: "move",
+      userSelect: "none",
+      pointerEvents: "auto",
+      top: savedPos && savedPos.top ? savedPos.top : "12px",
+      left: savedPos && savedPos.left ? savedPos.left : "auto",
+      right: savedPos && savedPos.left ? "auto" : "12px",
     });
 
     chartRoot.appendChild(panel);
@@ -185,22 +189,26 @@
       let diffAbs = null;
       let diffPct = null;
 
-      if (cursor != null && last != null &&
-          !Number.isNaN(cursor) && !Number.isNaN(last) &&
-          last !== 0) {
+      if (
+        cursor != null &&
+        last != null &&
+        !Number.isNaN(cursor) &&
+        !Number.isNaN(last) &&
+        last !== 0
+      ) {
         diffAbs = cursor - last;
         diffPct = (diffAbs / last) * 100;
       }
 
       const cursorStr = fmtPrice(cursor);
       const lastStr = fmtPrice(last);
-      const diffAbsStr = diffAbs == null ? '-' : fmtPrice(diffAbs);
-      const diffPctStr = diffPct == null ? '-' : fmtPct(diffPct);
+      const diffAbsStr = diffAbs == null ? "-" : fmtPrice(diffAbs);
+      const diffPctStr = diffPct == null ? "-" : fmtPct(diffPct);
 
-      let color = '#ffffff';
+      let color = "#ffffff";
       if (diffPct != null) {
-        if (diffPct > 0) color = '#f04452';
-        else if (diffPct < 0) color = '#1f6fff';
+        if (diffPct > 0) color = "#f04452";
+        else if (diffPct < 0) color = "#1f6fff";
       }
 
       panel.innerHTML =
@@ -216,11 +224,102 @@
     return updatePanel;
   }
 
-  // ===== IFRAME INIT =====
-  const IFRAME_INIT = '__tvFloatPanelIframeInit';
-  const TIMER_KEY = '__tvFloatPanelTimer';
+  // ===== CURSOR TOOLTIP =====
+  function createCursorTooltip(widget, idoc, w) {
+    const TOOLTIP_ID = "tv-cursor-tooltip";
+    const model = widget._model;
 
-  function initForIframe(iframe) {
+    const old = idoc.getElementById(TOOLTIP_ID);
+    if (old) old.remove();
+
+    const tooltip = idoc.createElement("div");
+    tooltip.id = TOOLTIP_ID;
+
+    const chartRoot = widget._mainDiv || idoc.body;
+
+    Object.assign(tooltip.style, {
+      position: "fixed",
+      zIndex: 999999,
+      padding: "4px 8px",
+      borderRadius: "4px",
+      background: "rgba(0, 0, 0, 0.8)",
+      color: "#ffffff",
+      fontSize: "13px",
+      fontWeight: "600",
+      fontFamily:
+        'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      whiteSpace: "nowrap",
+      pointerEvents: "none",
+      userSelect: "none",
+      display: "none",
+      transform: "translate(12px, -50%)",
+    });
+
+    chartRoot.appendChild(tooltip);
+
+    let mouseX = 0;
+    let mouseY = 0;
+    let isInChart = false;
+
+    idoc.addEventListener("mousemove", (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      isInChart = true;
+
+      tooltip.style.left = mouseX + "px";
+      tooltip.style.top = mouseY + "px";
+    });
+
+    idoc.addEventListener("mouseleave", () => {
+      isInChart = false;
+      tooltip.style.display = "none";
+    });
+
+    function updateTooltip() {
+      if (!isInChart) {
+        tooltip.style.display = "none";
+        return;
+      }
+
+      const cursor = getCursorPrice(model);
+      const last = getLastPrice(model);
+
+      let diffPct = null;
+
+      if (
+        cursor != null &&
+        last != null &&
+        !Number.isNaN(cursor) &&
+        !Number.isNaN(last) &&
+        last !== 0
+      ) {
+        const diffAbs = cursor - last;
+        diffPct = (diffAbs / last) * 100;
+      }
+
+      if (diffPct == null) {
+        tooltip.style.display = "none";
+        return;
+      }
+
+      const diffPctStr = fmtPct(diffPct);
+
+      let color = "#ffffff";
+      if (diffPct > 0) color = "#f04452";
+      else if (diffPct < 0) color = "#1f6fff";
+
+      tooltip.innerHTML = `<span style="color:${color}">${diffPctStr}</span>`;
+      tooltip.style.display = "block";
+    }
+
+    return updateTooltip;
+  }
+
+  // ===== IFRAME INIT =====
+  const IFRAME_INIT = "__tvPlusIframeInit";
+  const TIMER_KEY = "__tvPlusTimer";
+
+  function initForIframe(iframe, enabledFeatures) {
     let w, idoc;
     try {
       w = iframe.contentWindow;
@@ -238,7 +337,7 @@
     }
 
     const collection = w.chartWidgetCollection;
-    if (!collection || typeof collection.getAll !== 'function') {
+    if (!collection || typeof collection.getAll !== "function") {
       return false;
     }
 
@@ -253,14 +352,35 @@
       return false;
     }
 
-    const updatePanel = createFloatPanel(widget, idoc, w);
+    const updateFns = [];
+
+    if (enabledFeatures.floatPanel) {
+      const updatePanel = createFloatPanel(widget, idoc, w);
+      updateFns.push(updatePanel);
+    }
+
+    if (enabledFeatures.cursorTooltip) {
+      const updateTooltip = createCursorTooltip(widget, idoc, w);
+      updateFns.push(updateTooltip);
+    }
+
+    if (updateFns.length === 0) {
+      return false;
+    }
 
     if (w[TIMER_KEY]) {
       clearInterval(w[TIMER_KEY]);
     }
-    
-    updatePanel();
-    w[TIMER_KEY] = setInterval(updatePanel, 50);
+
+    w[TIMER_KEY] = setInterval(() => {
+      for (const fn of updateFns) {
+        try {
+          fn();
+        } catch (e) {
+          // 개별 업데이트 에러는 무시
+        }
+      }
+    }, CONFIG.UPDATE_INTERVAL_MS);
 
     w[IFRAME_INIT] = true;
     return true;
@@ -272,48 +392,57 @@
 
   console.log(`[Toss Invest Plus] v${CONFIG.VERSION} 초기화 시작`);
 
-  const storageKey = 'tossInvestPlusFeatures';
-  let enabledFeatures = { floatPanel: true }; // 기본값
-  
+  const storageKey = "tossInvestPlusFeatures";
+  let enabledFeatures = { floatPanel: true, cursorTooltip: true }; // 기본값
+
   try {
     const saved = localStorage.getItem(storageKey);
     if (saved) {
-      enabledFeatures = JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      enabledFeatures = {
+        floatPanel: parsed.floatPanel ?? true,
+        cursorTooltip: parsed.cursorTooltip ?? true,
+      };
     }
   } catch (e) {
-    console.log('[Toss Invest Plus] 설정 로드 실패, 기본값 사용');
+    console.log("[Toss Invest Plus] 설정 로드 실패, 기본값 사용");
   }
 
-  window.addEventListener('storage', (e) => {
+  window.addEventListener("storage", (e) => {
     if (e.key === storageKey && e.newValue) {
       try {
-        enabledFeatures = JSON.parse(e.newValue);
-        console.log('[Toss Invest Plus] 설정 업데이트됨, 페이지를 새로고침하세요.');
+        const parsed = JSON.parse(e.newValue);
+        enabledFeatures = {
+          floatPanel: parsed.floatPanel ?? true,
+          cursorTooltip: parsed.cursorTooltip ?? true,
+        };
+        console.log(
+          "[Toss Invest Plus] 설정 업데이트됨, 페이지를 새로고침하세요."
+        );
       } catch (err) {}
     }
   });
 
-  if (enabledFeatures.floatPanel) {
-    console.log('[Toss Invest Plus] FloatPanel 기능 로드 중...');
-    
-    function loop() {
-      try {
-        const iframe = findTradingViewIframe();
-        if (!iframe) {
-          setTimeout(loop, CONFIG.POLL_MS);
-          return;
-        }
-
-        initForIframe(iframe);
+  function loop() {
+    try {
+      const iframe = findTradingViewIframe();
+      if (!iframe) {
         setTimeout(loop, CONFIG.POLL_MS);
-      } catch (e) {
-        console.error('[Toss Invest Plus] FloatPanel 오류:', e);
-        setTimeout(loop, CONFIG.POLL_MS);
+        return;
       }
-    }
 
+      initForIframe(iframe, enabledFeatures);
+      setTimeout(loop, CONFIG.POLL_MS);
+    } catch (e) {
+      console.error("[Toss Invest Plus] FloatPanel/CursorTooltip 오류:", e);
+      setTimeout(loop, CONFIG.POLL_MS);
+    }
+  }
+
+  if (enabledFeatures.floatPanel || enabledFeatures.cursorTooltip) {
+    console.log("[Toss Invest Plus] 기능 로드 중...");
     loop();
   }
 
-  console.log('[Toss Invest Plus] 초기화 완료');
+  console.log("[Toss Invest Plus] 초기화 완료");
 })();
